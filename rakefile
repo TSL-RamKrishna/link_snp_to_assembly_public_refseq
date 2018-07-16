@@ -1,0 +1,43 @@
+ENV["input"] ? @sequence_to_blast=ENV["input"] : nil
+ENV["reference"] ? @reference=ENV["reference"] : nil
+ENV["reference2"] ? @reference2=ENV["reference2"] : nil
+ENV["num_alignments"] ? @num_alignments=ENV["num_alignments"] : @num_alignments=3
+
+directory "results"
+file "#{@reference}.nhr" => ["#{@reference}"] do
+  sh "source blast+-2.2.28; makeblastdb -dbtype nucl -in #{@reference} -out #{@reference}"
+end
+
+file "#{@reference2}.nhr" => ["#{@reference2}"] do
+  sh "source blast+-2.2.28; makeblastdb -dbtype nucl -in #{@reference2} -out #{@reference2}"
+end
+file "#{@reference}.phr" => ["#{@reference}"] do
+  sh "source blast+-2.2.28; makeblastdb -dbtype prot -in #{@reference} -out #{@reference}"
+end
+
+file "results/blast.out" => ["results", "#{@sequence_to_blast}", "#{@reference}.nhr"] do
+  puts "Blasting the input sequences to the reference sequence provided"
+  sh "source blast+-2.2.28; blastn -db #{@reference} -query #{@sequence_to_blast} -num_alignments #{@num_alignments} -outfmt 6 -out results/blast.out"
+end
+
+file "results/blast_sorted_descending.out" => ["results/blast.out"] do
+  sh "awk '{print $1, $3, $2, $4, $5, $6, $7, $8, $9, $10, $11, $12}' results/blast.out | sort -k1,2 -r -n | awk '{print $1, $3, $2, $4, $5, $6, $7, $8, $9, $10, $11, $12}' > results/blast_sorted_descending.out"
+end
+
+task :stage1 => ["results/blast_sorted_descending.out" ]
+
+# get query or subject subseq to blast to another reference
+
+file "results/subsequence_with_query_subject_id.fasta" => ["results/blast_sorted_descending.out"] do
+  sh "python scripts/process_fasta_fastq.py --input #{@reference} --blastout results/blast_sorted_descending.out --extract_subject_subseq --subseq --output results/subsequence_with_query_subject_id.fasta"
+end
+
+file "results/subsequence_with_query_subject_id_blast_ref2.out" => ["results/subsequence_with_query_subject_id.fasta", "#{@reference2}"] do
+  sh "source blast+-2.2.28; blastn -db #{@reference2} -query results/subsequence_with_query_subject_id.fasta -outfmt 6 -out results/subsequence_with_query_subject_id_blast_ref2.out"
+end
+
+task :blast_to_ref1_ref2 => ["results/subsequence_with_query_subject_id_blast_ref2.out"]
+task :stage2 => [:blast_to_ref1_ref2]
+
+
+task :default => ["results/blast_sorted_descending.out"]
