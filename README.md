@@ -17,4 +17,6 @@ There are very few plant species that are highly annotated. Often biologists wor
 
 ## usage
 
-rake -f rakefile input=reference/testinput.fasta reference=reference/test_public_reference.fasta reference2=reference/myassembly.fasta num_alignments=2 
+1) rake -f rakefile input=reference/testinput.fasta reference=reference/test_public_reference.fasta reference2=reference/myassembly.fasta num_alignments=2 
+2) rake -f rakefile input=reference/testinput.fasta reference=reference/test_public_reference.fasta reference2=reference/myassembly.fasta num_alignments=2 stage1  # blast your input testsequence to the first reference and stop
+3) rake -f rakefile input=reference/testinput.fasta reference=reference/test_public_reference.fasta reference2=reference/myassembly.fasta num_alignments=2 stage2  # blast your input testsequence to the first and second reference, it's default
